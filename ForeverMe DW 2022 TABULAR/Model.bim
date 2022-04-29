@@ -1,0 +1,1089 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1500,
+  "model": {
+    "culture": "pt-PT",
+    "discourageImplicitMeasures": true,
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "SQL/localhost;ForeverMe_DW_2021",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "localhost",
+            "database": "ForeverMe_DW_2021"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "ServiceAccount",
+          "EncryptConnection": false
+        }
+      }
+    ],
+    "tables": [
+      {
+        "name": "Fact DeliveryDays",
+        "columns": [
+          {
+            "name": "fk_customer",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_customer"
+          },
+          {
+            "name": "fk_product",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_product"
+          },
+          {
+            "name": "fk_supplier",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_supplier"
+          },
+          {
+            "name": "fk_shipping",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_shipping"
+          },
+          {
+            "name": "fk_date",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_date"
+          },
+          {
+            "name": "Delivery Days",
+            "dataType": "int64",
+            "sourceColumn": "delivery_days"
+          },
+          {
+            "type": "calculated",
+            "name": "Delivered",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": " IF('Fact DeliveryDays'[Delivery Days] < 0, \"Late Delivery\", IF('Fact DeliveryDays'[Delivery Days] = 0, \"On-Time\", \"Early Delivery\"))"
+          },
+          {
+            "type": "calculated",
+            "name": "Late Deliveries",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": " IF('Fact DeliveryDays'[Delivery Days] < 0, 1, 0)"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Fact_DeliveryDays = Source{[Schema=\"dbo\",Item=\"Fact_DeliveryDays\"]}[Data]",
+                "in",
+                "    dbo_Fact_DeliveryDays"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Total Late Deliveries",
+            "expression": " SUM('Fact DeliveryDays'[Late Deliveries])"
+          },
+          {
+            "name": "%Late deliveries",
+            "expression": " [Total Late Deliveries]/ COUNT('Fact DeliveryDays'[Late Deliveries])",
+            "formatString": "0%;-0%;0%",
+            "kpi": {
+              "targetExpression": "1",
+              "targetFormatString": "0%;-0%;0%",
+              "statusGraphic": "Traffic Light - Single",
+              "statusExpression": [
+                "var x='Fact DeliveryDays'[%Late deliveries] return",
+                "            if(ISBLANK(x),BLANK(),",
+                "                    If(x<0.5,-1,",
+                "\t                If(x<0.6,0,1)",
+                "                )",
+                "            )",
+                "            "
+              ],
+              "annotations": [
+                {
+                  "name": "GoalType",
+                  "value": "StaticValue"
+                },
+                {
+                  "name": "KpiStatusType",
+                  "value": "Linear"
+                },
+                {
+                  "name": "KpiThresholdType",
+                  "value": "Absolute"
+                },
+                {
+                  "name": "KpiThresholdOrdering",
+                  "value": "Ascending"
+                },
+                {
+                  "name": "KpiThresholdCount",
+                  "value": "2"
+                },
+                {
+                  "name": "KpiThreshold_0",
+                  "value": "0.5"
+                },
+                {
+                  "name": "KpiThreshold_1",
+                  "value": "0.6"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact Sales",
+        "columns": [
+          {
+            "name": "fk_date",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_date"
+          },
+          {
+            "name": "fk_product",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_product"
+          },
+          {
+            "name": "fk_supplier",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_supplier"
+          },
+          {
+            "name": "fk_customer",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "fk_customer"
+          },
+          {
+            "name": "Order Product Quantity",
+            "dataType": "int64",
+            "sourceColumn": "order_product_quantity"
+          },
+          {
+            "name": "Gross Sales Amount",
+            "dataType": "double",
+            "sourceColumn": "gross_sales_amount",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Sales Profit",
+            "dataType": "double",
+            "sourceColumn": "sales_profit",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Sales Discount Amount",
+            "dataType": "double",
+            "sourceColumn": "sales_discount_amount",
+            "formatString": "0%;-0%;0%"
+          },
+          {
+            "name": "Order Discount",
+            "dataType": "double",
+            "sourceColumn": "order_discount",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Fact_Sales = Source{[Schema=\"dbo\",Item=\"Fact_Sales\"]}[Data]",
+                "in",
+                "    dbo_Fact_Sales"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Sum of Gross Sales Amount",
+            "expression": "SUM([Gross Sales Amount])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Sum of Sales Profit",
+            "expression": "SUM([Sales Profit])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Maximum of Sales Profit",
+            "expression": "MAX([Sales Profit])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Average of Sales Discount Amount",
+            "expression": "AVERAGE([Sales Discount Amount])",
+            "formatString": "0%;-0%;0%",
+            "kpi": {
+              "targetExpression": "0.2",
+              "targetFormatString": "0%;-0%;0%",
+              "statusGraphic": "Three Flags Colored",
+              "statusExpression": [
+                "var x='Fact Sales'[Average of Sales Discount Amount] return",
+                "            if(ISBLANK(x),BLANK(),",
+                "                    If(x<0.1,1,",
+                "\t                If(x<0.15,0,-1)",
+                "                )",
+                "            )",
+                "            "
+              ],
+              "annotations": [
+                {
+                  "name": "GoalType",
+                  "value": "StaticValue"
+                },
+                {
+                  "name": "KpiStatusType",
+                  "value": "LinearReversed"
+                },
+                {
+                  "name": "KpiThresholdType",
+                  "value": "Absolute"
+                },
+                {
+                  "name": "KpiThresholdOrdering",
+                  "value": "Ascending"
+                },
+                {
+                  "name": "KpiThresholdCount",
+                  "value": "2"
+                },
+                {
+                  "name": "KpiThreshold_0",
+                  "value": "0.1"
+                },
+                {
+                  "name": "KpiThreshold_1",
+                  "value": "0.15"
+                }
+              ]
+            }
+          },
+          {
+            "name": "Average of Order Discount",
+            "expression": "AVERAGE([Order Discount])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Sum of Order Discount",
+            "expression": "SUM([Order Discount])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "%Discount",
+            "expression": [
+              "[Sum of Order Discount] /[Sum of Gross Sales Amount]",
+              ""
+            ],
+            "formatString": "0%;-0%;0%"
+          }
+        ]
+      },
+      {
+        "name": "Dim Customer",
+        "columns": [
+          {
+            "name": "sk_customer",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_customer"
+          },
+          {
+            "name": "bk_customer",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "bk_customer"
+          },
+          {
+            "name": "Customer Name",
+            "dataType": "string",
+            "sourceColumn": "customer_name"
+          },
+          {
+            "name": "Customer Gender",
+            "dataType": "string",
+            "sourceColumn": "customer_gender"
+          },
+          {
+            "name": "Customer Age",
+            "dataType": "int64",
+            "sourceColumn": "customer_age"
+          },
+          {
+            "name": "Customer Marital Status",
+            "dataType": "string",
+            "sourceColumn": "customer_marital_status"
+          },
+          {
+            "name": "Customer Type",
+            "dataType": "string",
+            "sourceColumn": "customer_type"
+          },
+          {
+            "name": "Customer Country",
+            "dataType": "string",
+            "sourceColumn": "customer_country"
+          },
+          {
+            "name": "Customer City",
+            "dataType": "string",
+            "sourceColumn": "customer_city"
+          },
+          {
+            "name": "scd_start_date",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "scd_start_date"
+          },
+          {
+            "name": "scd_end_date",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "scd_end_date"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Dim_Customer = Source{[Schema=\"dbo\",Item=\"Dim_Customer\"]}[Data]",
+                "in",
+                "    dbo_Dim_Customer"
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Customer Hierarchy",
+            "levels": [
+              {
+                "name": "Customer Country",
+                "ordinal": 0,
+                "column": "Customer Country"
+              },
+              {
+                "name": "Customer City",
+                "ordinal": 1,
+                "column": "Customer City"
+              }
+            ]
+          },
+          {
+            "name": "Customer Age Hierarchy",
+            "levels": [
+              {
+                "name": "Customer Age",
+                "ordinal": 0,
+                "column": "Customer Age"
+              },
+              {
+                "name": "Customer Gender",
+                "ordinal": 1,
+                "column": "Customer Gender"
+              },
+              {
+                "name": "Customer Marital Status",
+                "ordinal": 2,
+                "column": "Customer Marital Status"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Dim Date",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "sk_date",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_date"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isKey": true,
+            "sourceColumn": "full_date",
+            "formatString": "Short Date",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeShortDatePattern\" />"
+              }
+            ]
+          },
+          {
+            "name": "Monthday Number",
+            "dataType": "int64",
+            "sourceColumn": "monthday_number"
+          },
+          {
+            "name": "Weekday Name",
+            "dataType": "string",
+            "sourceColumn": "weekday_name"
+          },
+          {
+            "name": "Day Name Short",
+            "dataType": "string",
+            "sourceColumn": "day_name_short"
+          },
+          {
+            "name": "Weekday Type",
+            "dataType": "string",
+            "sourceColumn": "weekday_type"
+          },
+          {
+            "name": "Month Number",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "month_number"
+          },
+          {
+            "name": "Month Name",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "month_name",
+            "sortByColumn": "Month Number"
+          },
+          {
+            "name": "Month Name Short",
+            "dataType": "string",
+            "sourceColumn": "month_name_short"
+          },
+          {
+            "name": "Quarter Number",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "quarter_number"
+          },
+          {
+            "name": "Quarter Name",
+            "dataType": "string",
+            "sourceColumn": "quarter_name",
+            "sortByColumn": "Quarter Number"
+          },
+          {
+            "name": "Year",
+            "dataType": "int64",
+            "sourceColumn": "year"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Dim_Date = Source{[Schema=\"dbo\",Item=\"Dim_Date\"]}[Data]",
+                "in",
+                "    dbo_Dim_Date"
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Year Hierarchy",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              },
+              {
+                "name": "Quarter Name",
+                "ordinal": 1,
+                "column": "Quarter Name"
+              },
+              {
+                "name": "Monthday Number",
+                "ordinal": 4,
+                "column": "Monthday Number"
+              },
+              {
+                "name": "Weekday Name",
+                "ordinal": 3,
+                "column": "Weekday Name"
+              },
+              {
+                "name": "Month Name",
+                "ordinal": 2,
+                "column": "Month Name"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Dim Product",
+        "columns": [
+          {
+            "name": "sk_product",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_product"
+          },
+          {
+            "name": "bk_product",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "bk_product"
+          },
+          {
+            "name": "Product Name",
+            "dataType": "string",
+            "sourceColumn": "product_name"
+          },
+          {
+            "name": "Product Category",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "product_category"
+          },
+          {
+            "name": "Product Department",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "product_department"
+          },
+          {
+            "name": "Product Price",
+            "dataType": "double",
+            "sourceColumn": "product_price",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Product Cost",
+            "dataType": "double",
+            "sourceColumn": "product_cost",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "scd_start_date",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "scd_start_date"
+          },
+          {
+            "name": "scd_end_date",
+            "dataType": "dateTime",
+            "isHidden": true,
+            "sourceColumn": "scd_end_date"
+          },
+          {
+            "type": "calculated",
+            "name": "Profit",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": "'Dim Product'[Product Price] - 'Dim Product'[Product Cost]",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "%Profit",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": "'Dim Product'[Profit]/'Dim Product'[Product Price]",
+            "formatString": "0.00%;-0.00%;0.00%"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Dim_Product = Source{[Schema=\"dbo\",Item=\"Dim_Product\"]}[Data]",
+                "in",
+                "    dbo_Dim_Product"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Maximum of Product Price",
+            "expression": "MAX([Product Price])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Average of Product Price",
+            "expression": "AVERAGE([Product Price])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\" ThousandSeparator=\"True\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Sum of Profit",
+            "expression": "SUM([Profit])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Maximum of Profit",
+            "expression": "MAX([Profit])",
+            "formatString": "\\$#,0.00;(\\$#,0.00);\\$#,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Average of %Profit",
+            "expression": "AVERAGE([%Profit])",
+            "formatString": "0%;-0%;0%",
+            "kpi": {
+              "targetExpression": "1",
+              "targetFormatString": "0%;-0%;0%",
+              "statusGraphic": "Traffic Light - Single",
+              "statusExpression": [
+                "var x='Dim Product'[Average of %Profit] return",
+                "            if(ISBLANK(x),BLANK(),",
+                "                    If(x<0.5,-1,",
+                "\t                If(x<0.53,0,1)",
+                "                )",
+                "            )",
+                "            "
+              ],
+              "annotations": [
+                {
+                  "name": "GoalType",
+                  "value": "StaticValue"
+                },
+                {
+                  "name": "KpiStatusType",
+                  "value": "Linear"
+                },
+                {
+                  "name": "KpiThresholdType",
+                  "value": "Absolute"
+                },
+                {
+                  "name": "KpiThresholdOrdering",
+                  "value": "Ascending"
+                },
+                {
+                  "name": "KpiThresholdCount",
+                  "value": "2"
+                },
+                {
+                  "name": "KpiThreshold_0",
+                  "value": "0.5"
+                },
+                {
+                  "name": "KpiThreshold_1",
+                  "value": "0.53"
+                }
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Product Hierarchy",
+            "levels": [
+              {
+                "name": "Product Department",
+                "ordinal": 0,
+                "column": "Product Department"
+              },
+              {
+                "name": "Product Category",
+                "ordinal": 1,
+                "column": "Product Category"
+              },
+              {
+                "name": "Product Name",
+                "ordinal": 2,
+                "column": "Product Name"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Dim Shipping",
+        "columns": [
+          {
+            "name": "sk_shipping",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_shipping"
+          },
+          {
+            "name": "bk_shipping",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "bk_shipping"
+          },
+          {
+            "name": "Shipping Mode",
+            "dataType": "string",
+            "sourceColumn": "shipping_mode"
+          },
+          {
+            "name": "Shipping Scheduled Days",
+            "dataType": "int64",
+            "sourceColumn": "shipping_scheduled_days"
+          },
+          {
+            "name": "Shipping Real Days",
+            "dataType": "int64",
+            "sourceColumn": "shipping_real_days"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Dim_Shipping = Source{[Schema=\"dbo\",Item=\"Dim_Shipping\"]}[Data]",
+                "in",
+                "    dbo_Dim_Shipping"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim Supplier",
+        "columns": [
+          {
+            "name": "sk_supplier",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "sk_supplier"
+          },
+          {
+            "name": "bk_supplier",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "bk_supplier"
+          },
+          {
+            "name": "Supplier Name",
+            "dataType": "string",
+            "sourceColumn": "supplier_name"
+          },
+          {
+            "name": "Supplier City",
+            "dataType": "string",
+            "sourceColumn": "supplier_city"
+          },
+          {
+            "name": "Supplier State",
+            "dataType": "string",
+            "sourceColumn": "supplier_state"
+          },
+          {
+            "name": "Supplier Country",
+            "dataType": "string",
+            "sourceColumn": "supplier_country"
+          },
+          {
+            "name": "Supplier Market",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "supplier_market"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/localhost;ForeverMe_DW_2021\",",
+                "    dbo_Dim_Supplier = Source{[Schema=\"dbo\",Item=\"Dim_Supplier\"]}[Data]",
+                "in",
+                "    dbo_Dim_Supplier"
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Supplier Hierarchy",
+            "levels": [
+              {
+                "name": "Supplier Market",
+                "ordinal": 0,
+                "column": "Supplier Market"
+              },
+              {
+                "name": "Supplier Country",
+                "ordinal": 1,
+                "column": "Supplier Country"
+              },
+              {
+                "name": "Supplier State",
+                "ordinal": 2,
+                "column": "Supplier State"
+              },
+              {
+                "name": "Supplier City",
+                "ordinal": 3,
+                "column": "Supplier City"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "CalculationGroup 1",
+        "calculationGroup": {
+          "calculationItems": [
+            {
+              "name": "CalculationItem 1"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "name": "CalculationItemColumn 1",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculationGroup 1",
+            "mode": "import",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      },
+      {
+        "name": "CalculationGroup 2",
+        "calculationGroup": {
+          "precedence": 1,
+          "calculationItems": [
+            {
+              "name": "CalculationItem 1"
+            }
+          ]
+        },
+        "columns": [
+          {
+            "name": "CalculationItemColumn 1",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculationGroup 2",
+            "mode": "import",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "2f9991d7-873e-4ebe-b879-4ebfc6d16000",
+        "fromTable": "Fact DeliveryDays",
+        "fromColumn": "fk_date",
+        "toTable": "Dim Date",
+        "toColumn": "sk_date"
+      },
+      {
+        "name": "acf39683-2e14-4626-bf5c-3e8f84d00720",
+        "fromTable": "Fact DeliveryDays",
+        "fromColumn": "fk_product",
+        "toTable": "Dim Product",
+        "toColumn": "sk_product"
+      },
+      {
+        "name": "995f3351-161c-49bf-b3fa-7a363a69091d",
+        "fromTable": "Fact DeliveryDays",
+        "fromColumn": "fk_supplier",
+        "toTable": "Dim Supplier",
+        "toColumn": "sk_supplier"
+      },
+      {
+        "name": "b70db2ba-f035-4619-8369-ce74c53f5e61",
+        "fromTable": "Fact Sales",
+        "fromColumn": "fk_customer",
+        "toTable": "Dim Customer",
+        "toColumn": "sk_customer"
+      },
+      {
+        "name": "68e22926-48e4-46b1-9691-b229233f49cf",
+        "fromTable": "Fact Sales",
+        "fromColumn": "fk_product",
+        "toTable": "Dim Product",
+        "toColumn": "sk_product"
+      },
+      {
+        "name": "28a71f58-8ab3-43ca-970f-863ae5f7ca5a",
+        "fromTable": "Fact Sales",
+        "fromColumn": "fk_supplier",
+        "toTable": "Dim Supplier",
+        "toColumn": "sk_supplier"
+      },
+      {
+        "name": "99465ca8-1ac1-4b86-9380-e96baed04e8d",
+        "fromTable": "Fact DeliveryDays",
+        "fromColumn": "fk_customer",
+        "toTable": "Dim Customer",
+        "toColumn": "sk_customer"
+      },
+      {
+        "name": "de8b8bdc-e4cd-49a6-8264-37adf0a232ab",
+        "fromTable": "Fact DeliveryDays",
+        "fromColumn": "fk_shipping",
+        "toTable": "Dim Shipping",
+        "toColumn": "sk_shipping"
+      },
+      {
+        "name": "73b76426-9dde-4b56-af36-58e15e3074e1",
+        "fromTable": "Fact Sales",
+        "fromColumn": "fk_date",
+        "toTable": "Dim Date",
+        "toColumn": "sk_date"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "600"
+      }
+    ]
+  },
+  "id": "SemanticModel"
+}
